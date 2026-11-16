@@ -1,8 +1,9 @@
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 import { StringOutputParser } from '@langchain/core/output_parsers'
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 import type { QueryRequest, RAGResponse } from '../types.js'
-import { llm } from './llama.js'
+import { llm } from './openia.js'
 import { searchDocuments } from './query.js'
 
 const PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
@@ -32,10 +33,10 @@ const PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
 ],
 ])
 
-export async function generatedRAGResponse({ 
-  question,
-  topK = 3,
-}: QueryRequest): Promise<RAGResponse> {
+export async function generatedRAGResponse(
+  { question, topK = 3 }: QueryRequest,
+  model: BaseChatModel = llm, // override to compare providers, see compare-llms.ts
+): Promise<RAGResponse> {
   const searchResults = await searchDocuments({
     question,
     topK,
@@ -53,7 +54,7 @@ export async function generatedRAGResponse({
     .join('\n\n')
 
 
-  const chains = PROMPT_TEMPLATE.pipe(llm).pipe(new StringOutputParser)
+  const chains = PROMPT_TEMPLATE.pipe(model).pipe(new StringOutputParser)
 
   const answer = await chains.invoke({context, question})
 
